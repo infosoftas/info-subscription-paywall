@@ -32,8 +32,9 @@ without a publisher deployment.
 
 ## Initialize and protect content
 
-Both distributions use the same hosted tenant configuration. The example host
-below is a placeholder; use the tenant's deployed SelfService origin.
+Both distributions accept either a hosted configuration URL or direct subscriber
+authentication settings. For hosted configuration, use the tenant's deployed
+SelfService origin:
 
 ```ts
 import { createPaywall } from 'infosoft-s4-client-paywall';
@@ -50,9 +51,24 @@ const dispose = paywall.protect({
 });
 ```
 
+Alternatively, pass the client ID and complete subscriber sign-in authority
+directly. The authority must be an HTTPS URL ending in `/`:
+
+```ts
+const paywall = await createPaywall({
+    clientId: 'YOUR_SUBSCRIBER_CLIENT_ID',
+    authority: 'https://tenant.example/tenant.onmicrosoft.com/B2C_1_Signin/',
+    redirectUri: `${window.location.origin}/auth-callback`,
+});
+```
+
+Provide exactly one form: `configUrl`, or both `clientId` and `authority`.
+Direct configuration does not contact SelfService. Hosted configuration is
+fetched without cookies (`credentials: 'omit'`). Both values are public; never
+put a client secret in browser code.
+
 The script-tag bundle exposes the equivalent factory as
-`InfoSubscriptionPaywall.create(...)`. Both builds fetch public client ID and
-complete subscriber authority at runtime, using `credentials: 'omit'`; neither
+`InfoSubscriptionPaywall.create(...)` and accepts the same options. Neither
 build contains tenant authentication settings.
 
 The npm module can be imported during server-side rendering because module
@@ -73,8 +89,8 @@ Stop onboarding and revisit registration explicitly if the existing
 application cannot accept the publisher callback.
 
 The callback URL must serve a publisher-owned page that loads and initializes
-the SDK with the same `configUrl` and exact `redirectUri` so MSAL can process the
-authentication return. The publisher controls any navigation after that
+the SDK with the same configuration and exact `redirectUri` so MSAL can process
+the authentication return. The publisher controls any navigation after that
 callback. Popup sign-in is user initiated; redirect sign-in is an explicit
 alternative:
 

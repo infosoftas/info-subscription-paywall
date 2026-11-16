@@ -27,7 +27,7 @@ vi.mock('@azure/msal-browser', () => ({
     PublicClientApplication: msal.PublicClientApplication,
 }));
 
-import { createPaywall } from '../src/auth';
+import { createPaywall, type PaywallOptions } from '../src/auth';
 
 const configUrl = 'https://tenant.example/paywall/config';
 const redirectUri = 'https://publisher.example/auth-callback';
@@ -88,6 +88,65 @@ describe('createPaywall authentication lifecycle', () => {
         );
         expect(msal.instance.initialize).toHaveBeenCalledOnce();
         expect(paywall.getState().status).toBe('anonymous');
+    });
+
+    it('initializes with direct subscriber settings without fetching configuration', async () => {
+        const paywall = await createPaywall({
+            clientId: 'direct-client',
+            authority: 'https://tenant.example/tenant.onmicrosoft.com/B2C_1_Signin/',
+            redirectUri,
+        } as PaywallOptions);
+
+        expect(paywall.getState().status).toBe('anonymous');
+        expect(fetch).not.toHaveBeenCalled();
+        expect(msal.PublicClientApplication).toHaveBeenCalledWith(
+            expect.objectContaining({
+                auth: expect.objectContaining({
+                    clientId: 'direct-client',
+                    authority: 'https://tenant.example/tenant.onmicrosoft.com/B2C_1_Signin/',
+                    redirectUri,
+                }),
+            })
+        );
+    });
+
+    it('treats an undefined optional configUrl as absent for direct configuration', async () => {
+        const paywall = await createPaywall({
+            configUrl: undefined,
+            clientId: 'direct-client',
+            authority: 'https://tenant.example/B2C_1_Signin/',
+            redirectUri,
+        });
+
+        expect(paywall.getState().status).toBe('anonymous');
+        expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it('treats undefined optional direct settings as absent for hosted configuration', async () => {
+        const paywall = await createPaywall({
+            configUrl,
+            clientId: undefined,
+            authority: undefined,
+            redirectUri,
+        });
+
+        expect(paywall.getState().status).toBe('anonymous');
+        expect(fetch).toHaveBeenCalledWith(configUrl, { credentials: 'omit' });
+    });
+
+    it.each([
+        { clientId: '', authority: 'https://tenant.example/B2C_1_Signin/' },
+        { clientId: 'client', authority: 'http://tenant.example/B2C_1_Signin/' },
+        { clientId: 'client', authority: 'not-an-authority' },
+        { clientId: 'client' },
+        { configUrl, clientId: 'client', authority: 'https://tenant.example/B2C_1_Signin/' },
+        { configUrl: '' },
+    ])('fails closed for invalid or ambiguous configuration: %o', async (config) => {
+        const paywall = await createPaywall({ ...config, redirectUri } as PaywallOptions);
+
+        expect(paywall.getState().status).toBe('failed');
+        expect(msal.PublicClientApplication).not.toHaveBeenCalled();
+        expect(fetch).not.toHaveBeenCalled();
     });
 
     it('reports a generic failed state for config errors and retries without stale fallback', async () => {

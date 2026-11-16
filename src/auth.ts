@@ -15,10 +15,12 @@ export interface PaywallState {
     error?: Error;
 }
 
-export interface PaywallOptions {
-    configUrl: string;
+export type PaywallOptions = {
     redirectUri: string;
-}
+} & (
+    | { configUrl: string; clientId?: never; authority?: never }
+    | { configUrl?: never; clientId: string; authority: string }
+);
 
 interface PublicConfiguration {
     clientId: string;
@@ -91,7 +93,7 @@ class PaywallClient implements Paywall {
         this.setState({ status: 'initializing' });
 
         try {
-            const config = await this.fetchConfiguration();
+            const config = await this.resolveConfiguration();
             const { BrowserCacheLocation, PublicClientApplication } =
                 await import('@azure/msal-browser');
             const authority = new URL(config.authority);
@@ -226,17 +228,26 @@ class PaywallClient implements Paywall {
         this.msal = null;
     }
 
-    private async fetchConfiguration(): Promise<PublicConfiguration> {
-        const response = await fetch(this.options.configUrl, { credentials: 'omit' });
-        if (!response.ok) {
-            throw new Error('Unable to load paywall configuration.');
-        }
-
-        let configuration: unknown;
-        try {
-            configuration = await response.json();
-        } catch {
-            throw new Error('Paywall configuration is invalid.');
+    private async resolveConfiguration(): Promise<PublicConfiguration> {
+        let configuration: unknown = this.options;
+        if (this.options.configUrl !== undefined) {
+            if (
+                typeof this.options.configUrl !== 'string' ||
+                this.options.configUrl.trim().length === 0 ||
+                this.options.clientId !== undefined ||
+                this.options.authority !== undefined
+            ) {
+                throw new Error('Paywall configuration is invalid.');
+            }
+            const response = await fetch(this.options.configUrl, { credentials: 'omit' });
+            if (!response.ok) {
+                throw new Error('Unable to load paywall configuration.');
+            }
+            try {
+                configuration = await response.json();
+            } catch {
+                throw new Error('Paywall configuration is invalid.');
+            }
         }
 
         if (
