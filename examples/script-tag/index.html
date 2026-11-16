@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>INFO-Subscription soft-wall example</title>
+        <style>
+            #article[hidden] {
+                display: none !important;
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <h1>Publisher article</h1>
+            <p id="paywall-fallback" role="status">
+                Subscriber access is being checked. Enable JavaScript to sign in.
+            </p>
+            <div id="paywall"></div>
+            <article id="article" hidden>
+                <p>This protected article is still present in the page source.</p>
+            </article>
+            <noscript>
+                <p>Enable JavaScript to sign in. The protected article is not secure delivery.</p>
+            </noscript>
+        </main>
+        <script src="../../dist/browser/paywall.js"></script>
+        <script>
+            (async () => {
+                const fallback = document.querySelector('#paywall-fallback');
+                try {
+                    const paywall = await globalThis.InfoSubscriptionPaywall.create({
+                        configUrl: 'https://tenant-selfservice.example/paywall/config',
+                        redirectUri: `${window.location.origin}/auth-callback.html`,
+                    });
+                    const dispose = paywall.protect({
+                        content: '#article',
+                        target: '#paywall',
+                        products: ['c3011960-9721-40cb-b900-a70908ac5d33'],
+                    });
+                    fallback.hidden = true;
+                    window.addEventListener('pagehide', dispose, { once: true });
+                } catch {
+                    fallback.textContent =
+                        'Unable to load the subscriber paywall. Please try again later.';
+                }
+            })();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>INFO-Subscription npm example</title>
+    </head>
+    <body>
+        <main>
+            <h1>Publisher article</h1>
+            <div id="paywall"></div>
+            <article id="article" hidden>
+                <p>This protected article is still present in the page source.</p>
+            </article>
+            <noscript>
+                <p>Enable JavaScript to sign in. The protected article is not secure delivery.</p>
+            </noscript>
+        </main>
+        <script type="module" src="/src/main.ts"></script>
+    </body>
+</html>

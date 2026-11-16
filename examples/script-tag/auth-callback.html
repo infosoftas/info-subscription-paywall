@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Subscriber sign-in callback</title>
+    </head>
+    <body>
+        <main>
+            <p id="callback-status" role="status" aria-live="polite">
+                Completing subscriber sign-in…
+            </p>
+        </main>
+        <script src="../../dist/browser/paywall.js"></script>
+        <script>
+            (async () => {
+                const status = document.querySelector('#callback-status');
+                try {
+                    const paywall = await globalThis.InfoSubscriptionPaywall.create({
+                        configUrl: 'https://tenant-selfservice.example/paywall/config',
+                        redirectUri: `${window.location.origin}/auth-callback.html`,
+                    });
+                    status.textContent = `Subscriber sign-in status: ${paywall.getState().status}.`;
+                } catch {
+                    status.textContent = 'Unable to complete subscriber sign-in.';
+                }
+            })();
+        </script>
+    </body>
+</html>
