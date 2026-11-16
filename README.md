@@ -7,17 +7,21 @@ Anything sent to a browser can be inspected or recovered by disabling scripts.
 For hard protection, send only a teaser and have the publisher backend
 authenticate each protected-content request and enforce its own access rules.
 
-The private package name in this repository is a build placeholder. Final npm
-package naming, the CDN asset host, and release authorization are release-time
-decisions; this repository does not publish either artifact.
+This repository owns the SDK and its CI. SelfService owns only the optional
+hosted authentication configuration endpoint; direct configuration needs no
+SelfService endpoint. See the [design](docs/superpowers/specs/2026-11-12-browser-paywall-design.md)
+and [plan](docs/superpowers/plans/2026-11-12-browser-paywall.md).
+
+Version tags trigger npm packaging, public npm publication, and a GitHub Release.
+Publishing requires npm trusted-publisher setup described below. A CDN host for
+the browser bundle remains a separate release decision.
 
 ## Installation
 
-After the final package has been approved and published, install it in a
-publisher app:
+After the package has been published, install it in a publisher app:
 
 ```shell
-npm install infosoft-s4-client-paywall
+npm install @infosoftas/info-subscription-paywall
 ```
 
 Or load the versioned self-contained browser bundle after release assets are
@@ -37,7 +41,7 @@ authentication settings. For hosted configuration, use the tenant's deployed
 SelfService origin:
 
 ```ts
-import { createPaywall } from 'infosoft-s4-client-paywall';
+import { createPaywall } from '@infosoftas/info-subscription-paywall';
 
 const paywall = await createPaywall({
     configUrl: 'https://tenant-selfservice.example/paywall/config',
@@ -180,3 +184,19 @@ The isolated browser examples are in `examples/script-tag/` and `examples/npm/`.
 Live sign-in validation requires an approved test identity and registered
 publisher callback; do not test against production accounts or another user's
 session.
+
+## npm releases
+
+The `.github/workflows/package-npm.yml` workflow runs on numeric version tags,
+such as `2026.11.1` or `2026.11.1-preview.1`. It tests, builds, and packs that
+exact version, uploads the tarball as a workflow artifact, publishes it to npm
+using trusted publishing, and creates a GitHub Release. Prereleases use npm's
+`next` dist-tag; stable releases use `latest`. Tags must be valid npm versions.
+The workflow does not create tags or deploy the browser bundle to a CDN.
+
+Before the first automated release, an npm organization maintainer must ensure
+the package exists, then configure a GitHub Actions trusted publisher for
+`infosoftas/info-subscription-paywall` and `package-npm.yml`, allowing direct
+`npm publish`. npm requires an existing package to configure this trust; initial
+publication must be handled separately. Configure trust shortly before release,
+because an unused trusted-publisher configuration expires after two days.

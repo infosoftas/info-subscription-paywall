@@ -28,7 +28,7 @@ describe('publisher examples', () => {
             readFile(npmExample, 'utf8'),
         ]);
 
-        expect(typescript).toContain("from 'infosoft-s4-client-paywall'");
+        expect(typescript).toContain("from '@infosoftas/info-subscription-paywall'");
         expect(typescript).toContain('createPaywall(');
         expect(typescript).toContain('paywall.protect(');
         expect(typescript).toContain('https://tenant-selfservice.example/paywall/config');
@@ -42,7 +42,7 @@ describe('publisher examples', () => {
         ]);
 
         expect(scriptCallback).toContain('InfoSubscriptionPaywall.create(');
-        expect(npmCallback).toContain("from 'infosoft-s4-client-paywall'");
+        expect(npmCallback).toContain("from '@infosoftas/info-subscription-paywall'");
         expect(npmCallback).toContain('createPaywall(');
         expect(npmCallback).toContain('tenant-selfservice.example/paywall/config');
     });
