@@ -16,11 +16,8 @@
             (async () => {
                 const status = document.querySelector('#callback-status');
                 try {
-                    const paywall = await globalThis.InfoSubscriptionPaywall.create({
-                        configUrl: 'https://tenant-selfservice.example/paywall/config',
-                        redirectUri: `${window.location.origin}/auth-callback.html`,
-                    });
-                    status.textContent = `Subscriber sign-in status: ${paywall.getState().status}.`;
+                    await globalThis.InfoSubscriptionPaywall.completeSignIn();
+                    status.textContent = 'Sign-in response returned to the publisher page.';
                 } catch {
                     status.textContent = 'Unable to complete subscriber sign-in.';
                 }

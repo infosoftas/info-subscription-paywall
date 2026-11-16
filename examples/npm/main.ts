@@ -1,4 +1,4 @@
-import { createPaywall } from 'infosoft-s4-client-paywall';
+import { createPaywall } from '@infosoftas/info-subscription-paywall';
 
 export const initializePaywall = async () => {
     const paywall = await createPaywall({

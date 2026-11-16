@@ -14,3 +14,4 @@ export type {
 } from './auth';
 export { renderProtectedContent } from './renderer';
 export type { PaywallMessages, ProtectOptions } from './renderer';
+export { broadcastResponseToMainFrame as completeSignIn } from '@azure/msal-browser/redirect-bridge';

@@ -1,9 +1,12 @@
 {
-  "name": "infosoft-s4-client-paywall",
+  "name": "@infosoftas/info-subscription-paywall",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "description": "Standalone browser subscriber paywall SDK",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/infosoftas/info-subscription-paywall.git"
+  },
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
