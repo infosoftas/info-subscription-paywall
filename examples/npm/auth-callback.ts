@@ -1,14 +1,11 @@
-import { createPaywall } from '@infosoftas/info-subscription-paywall';
+import { completeSignIn } from '@infosoftas/info-subscription-paywall';
 
 export const completeSubscriberSignIn = async () => {
     const status = document.querySelector<HTMLElement>('#callback-status');
     try {
-        const paywall = await createPaywall({
-            configUrl: 'https://tenant-selfservice.example/paywall/config',
-            redirectUri: `${window.location.origin}/auth-callback.html`,
-        });
+        await completeSignIn();
         if (status) {
-            status.textContent = `Subscriber sign-in status: ${paywall.getState().status}.`;
+            status.textContent = 'Sign-in response returned to the publisher page.';
         }
     } catch {
         if (status) {

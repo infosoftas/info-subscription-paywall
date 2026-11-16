@@ -48,7 +48,9 @@ Both npm and script-tag builds accept exactly one subscriber configuration form:
   secret. This is subscriber authentication, not administrator API login.
 - The publisher supplies its exact redirect URI; an administrator must register
   that URI as a SPA callback for the chosen subscriber application. The callback
-  page initializes the SDK with the same configuration and redirect URI.
+  page calls `completeSignIn()` without initializing a paywall client. MSAL's
+  redirect bridge relays popup responses to the opener or navigates full-page
+  redirects back to the initiating page for authentication completion.
 - MSAL Browser uses authorization code with PKCE and publisher-origin session
   storage. Popup sign-in is user initiated; redirect sign-in is explicit.
   SelfService cookies/storage are not shared across origins.

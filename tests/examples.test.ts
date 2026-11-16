@@ -41,9 +41,10 @@ describe('publisher examples', () => {
             readFile(new URL('../examples/npm/auth-callback.ts', import.meta.url), 'utf8'),
         ]);
 
-        expect(scriptCallback).toContain('InfoSubscriptionPaywall.create(');
+        expect(scriptCallback).toContain('InfoSubscriptionPaywall.completeSignIn(');
         expect(npmCallback).toContain("from '@infosoftas/info-subscription-paywall'");
-        expect(npmCallback).toContain('createPaywall(');
-        expect(npmCallback).toContain('tenant-selfservice.example/paywall/config');
+        expect(npmCallback).toContain('await completeSignIn()');
+        expect(scriptCallback).not.toContain('InfoSubscriptionPaywall.create(');
+        expect(npmCallback).not.toContain('createPaywall(');
     });
 });

@@ -92,11 +92,15 @@ endpoint does not register or repair an incompatible application registration.
 Stop onboarding and revisit registration explicitly if the existing
 application cannot accept the publisher callback.
 
-The callback URL must serve a publisher-owned page that loads and initializes
-the SDK with the same configuration and exact `redirectUri` so MSAL can process
-the authentication return. The publisher controls any navigation after that
-callback. Popup sign-in is user initiated; redirect sign-in is an explicit
-alternative:
+The callback URL must serve a publisher-owned bridge page. Load the browser
+bundle and call `InfoSubscriptionPaywall.completeSignIn()`, or import and call
+`completeSignIn` from the npm package. Do not initialize a paywall client on
+this page. No tenant configuration is needed there: the bridge relays popup
+responses to the opener and returns full-page redirects to the initiating page,
+where the SDK completes authentication. See `examples/script-tag/auth-callback.html`
+and `examples/npm/auth-callback.ts`.
+
+Popup sign-in is user initiated; redirect sign-in is an explicit alternative:
 
 ```ts
 await paywall.signIn(); // popup
