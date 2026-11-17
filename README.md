@@ -9,10 +9,8 @@ authenticate each protected-content request and enforce its own access rules.
 
 This repository owns the SDK and its CI. SelfService owns only the optional
 hosted authentication configuration endpoint; direct configuration needs no
-SelfService endpoint. See the [design](docs/superpowers/specs/2026-11-12-browser-paywall-design.md)
-and [plan](docs/superpowers/plans/2026-11-12-browser-paywall.md).
+SelfService endpoint.
 
-Version tags trigger npm packaging, public npm publication, and a GitHub Release.
 The browser bundle is available through jsDelivr directly from the published
 npm package; no separate SDK hosting service is needed.
 
@@ -20,11 +18,14 @@ npm package; no separate SDK hosting service is needed.
 
 Before choosing npm or script tags:
 
-- Obtain either the tenant's deployed SelfService `/paywall/config` URL or its
-  public subscriber `clientId` and complete sign-in `authority`.
-- Choose a callback URL on the publisher's origin and register it as an **SPA
-  redirect URI** on that subscriber application. The examples below use
-  `/auth-callback.html`; register the exact scheme, hostname, port, and path.
+- Obtain the tenant's SelfService configuration URL:
+  `https://{tenantName}.customer.info-subscription.com/paywall/config`.
+  Replace `{tenantName}` with your tenant name. Alternatively, obtain the public
+  subscriber `clientId` and complete sign-in `authority`.
+- Choose a callback URL on the publisher's origin, then contact **Infosoft
+  support** to request registration of that exact URL as an **SPA redirect URL
+  for use with paywall**. Include your tenant name and the full URL (scheme,
+  hostname, port, and path). The examples below use `/auth-callback.html`.
 - Choose the product GUIDs required for the article. Use `access: 'authenticated'`
   instead of `products` when testing sign-in without a subscription requirement.
 - Serve pages over HTTPS, or HTTP on localhost for development. Do not open
@@ -35,7 +36,7 @@ subscriber's credentials.
 
 ### Script tags: no build step
 
-Save this as `index.html`, replacing the config URL and product GUID:
+Save this as `index.html`, replacing `{tenantName}` and the product GUID:
 
 ```html
 <!doctype html>
@@ -55,7 +56,7 @@ Save this as `index.html`, replacing the config URL and product GUID:
         const status = document.querySelector('#status');
         try {
             const paywall = await InfoSubscriptionPaywall.create({
-                configUrl: 'https://tenant-selfservice.example/paywall/config',
+                configUrl: 'https://{tenantName}.customer.info-subscription.com/paywall/config',
                 redirectUri: `${window.location.origin}/auth-callback.html`,
             });
             paywall.protect({
@@ -106,8 +107,8 @@ For a local test, serve the folder containing both pages:
 python -m http.server 8000 --bind 127.0.0.1
 ```
 
-Open `http://localhost:8000/` and register
-`http://localhost:8000/auth-callback.html` as the SPA callback.
+Open `http://localhost:8000/`. For this local test, ask Infosoft support to
+register `http://localhost:8000/auth-callback.html` as the SPA redirect URL.
 Verify anonymous content stays hidden, a matching subscriber sees it, and a
 subscriber without the selected product is denied. Content in this example is
 still delivered in HTML; this is a soft wall, not secure content delivery.
@@ -117,7 +118,7 @@ still delivered in HTML; this is a soft wall, not secure content delivery.
 Install the SDK in the publisher application:
 
 ```shell
-npm install @infosoftas/info-subscription-paywall@0.1.1
+npm install @infosoftas/info-subscription-paywall
 ```
 
 Use the initialization below after the article elements are mounted. Provide
@@ -148,13 +149,13 @@ upgrading. Publishers can also self-host the package's `dist/browser/paywall.js`
 
 Both distributions accept either a hosted configuration URL or direct subscriber
 authentication settings. For hosted configuration, use the tenant's deployed
-SelfService origin:
+SelfService URL, replacing `{tenantName}` with your tenant name:
 
 ```ts
 import { createPaywall } from '@infosoftas/info-subscription-paywall';
 
 const paywall = await createPaywall({
-    configUrl: 'https://tenant-selfservice.example/paywall/config',
+    configUrl: 'https://{tenantName}.customer.info-subscription.com/paywall/config',
     redirectUri: `${window.location.origin}/auth-callback.html`,
 });
 
@@ -196,11 +197,10 @@ browser is only a presentation improvement, not a security boundary.
 
 Subscriber authentication uses MSAL Browser's authorization-code flow with
 PKCE. No browser client secret is used. The publisher must provide the exact
-`redirectUri`, and an administrator of the existing subscriber SPA application
-must register that exact callback URL as an SPA redirect URI. A hosted config
-endpoint does not register or repair an incompatible application registration.
-Stop onboarding and revisit registration explicitly if the existing
-application cannot accept the publisher callback.
+`redirectUri`. Contact Infosoft support with your tenant name and chosen full
+callback URL, requesting an SPA redirect URL registration for use with paywall.
+Complete registration before testing sign-in. A hosted config endpoint does
+not register callbacks.
 
 The callback URL must serve a publisher-owned bridge page. Load the browser
 bundle and call `InfoSubscriptionPaywall.completeSignIn()`, or import and call
@@ -279,44 +279,5 @@ Errors are distinct from subscription denial and leave managed content hidden.
 Publishers retain ownership of article classification, product selection,
 fallback markup, and all custom UI if they choose not to use the renderer.
 
-## Local development and validation
-
-```shell
-npm ci
-npm test -- --run
-npm run typecheck
-npm run build
-npm pack --dry-run
-```
-
-The build produces `dist/esm/index.js`, TypeScript declarations in
-`dist/types/`, and a self-contained `dist/browser/paywall.js` IIFE. The browser
-bundle includes MSAL; the npm module declares MSAL as its runtime dependency.
-No tenant-specific settings are baked into either artifact.
-
-The isolated browser examples are in `examples/script-tag/` and `examples/npm/`.
-Live sign-in validation requires an approved test identity and registered
-publisher callback; do not test against production accounts or another user's
-session.
-
-## npm releases
-
-The `.github/workflows/package-npm.yml` workflow runs on numeric version tags,
-such as `2026.11.1` or `2026.11.1-preview.1`. It tests, builds, and packs that
-exact version, uploads the tarball as a workflow artifact, publishes it to npm
-using trusted publishing, and creates a GitHub Release. Prereleases use npm's
-`next` dist-tag; stable releases use `latest`. Tags must be valid npm versions.
-The workflow does not create tags. jsDelivr serves the published package's
-`dist/browser/paywall.js` using its immutable versioned URL; no separate CDN
-deployment is required.
-
-Trusted publishing is configured for this package. If it needs to be recreated,
-an npm organization maintainer configures a GitHub Actions trusted publisher for
-`infosoftas/info-subscription-paywall` and `package-npm.yml`, allowing direct
-`npm publish` with no environment name. No npm publishing token is needed in
-GitHub. Push a new numeric version tag from the intended release commit; do not
-reuse published versions or prefix the tag with `v`.
-
-## License
-
-[MIT](LICENSE). Dependencies retain their own licenses.
+For contributor instructions, see [Development](DEVELOPMENT.md) and
+[Releases](RELEASE.md).
