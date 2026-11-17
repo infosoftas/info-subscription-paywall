@@ -67,9 +67,9 @@ These checks do not replace a live sign-in test.
 - If hosted configuration is used, merge and deploy the Client endpoint change,
   then validate cross-origin configuration reads. Direct configuration can be
   used without SelfService.
-- Create the npm package and configure trusted publishing for
-  `package-npm.yml` before the first automated release. Select and provision a
-  CDN host separately for the browser bundle.
+- npm publication and trusted publishing are configured. Script-tag consumers
+  use a pinned jsDelivr URL for the published browser bundle or self-host it;
+  no separate CDN provisioning is required.
 - Publishers needing hard protection must implement independent backend
   authentication and authorization; SDK soft-wall behavior is not protection
   of delivered HTML.
