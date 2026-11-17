@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Standalone browser subscriber paywall SDK",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/infosoftas/info-subscription-paywall.git"

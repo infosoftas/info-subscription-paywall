@@ -92,9 +92,10 @@ requires a browser. Runtime tenant settings are not embedded in either build.
 GitHub Actions runs SDK tests, type checking, builds, package dry-run, and
 publishes build artifacts. Version tags trigger packaging and publication of
 `@infosoftas/info-subscription-paywall` using npm trusted publishing, followed
-by a GitHub Release. Initial npm package creation and trusted-publisher setup
-are prerequisites; CDN hosting remains separate. SelfService deploys its own
-endpoint independently.
+by a GitHub Release. jsDelivr serves the self-contained browser bundle from
+the published npm package at an explicitly pinned version; publishers may also
+self-host it. No separate CDN deployment is required. The SDK is MIT licensed.
+SelfService deploys its own endpoint independently.
 
 Unit tests cover authentication, direct/hosted configuration, entitlement
 boundaries, rendering, SSR-safe import, and examples. A live OIDC check

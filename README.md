@@ -13,26 +13,136 @@ SelfService endpoint. See the [design](docs/superpowers/specs/2026-11-12-browser
 and [plan](docs/superpowers/plans/2026-11-12-browser-paywall.md).
 
 Version tags trigger npm packaging, public npm publication, and a GitHub Release.
-Publishing requires npm trusted-publisher setup described below. A CDN host for
-the browser bundle remains a separate release decision.
+The browser bundle is available through jsDelivr directly from the published
+npm package; no separate SDK hosting service is needed.
 
-## Installation
+## Publisher onboarding
 
-After the package has been published, install it in a publisher app:
+Before choosing npm or script tags:
 
-```shell
-npm install @infosoftas/info-subscription-paywall
-```
+- Obtain either the tenant's deployed SelfService `/paywall/config` URL or its
+  public subscriber `clientId` and complete sign-in `authority`.
+- Choose a callback URL on the publisher's origin and register it as an **SPA
+  redirect URI** on that subscriber application. The examples below use
+  `/auth-callback.html`; register the exact scheme, hostname, port, and path.
+- Choose the product GUIDs required for the article. Use `access: 'authenticated'`
+  instead of `products` when testing sign-in without a subscription requirement.
+- Serve pages over HTTPS, or HTTP on localhost for development. Do not open
+  the examples as `file://` URLs.
 
-Or load the versioned self-contained browser bundle after release assets are
-provisioned:
+Client IDs and authorities are public. Never embed a client secret or a
+subscriber's credentials.
+
+### Script tags: no build step
+
+Save this as `index.html`, replacing the config URL and product GUID:
 
 ```html
-<script src="https://YOUR_APPROVED_ASSET_HOST/paywall/VERSION/paywall.js"></script>
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Publisher article</title>
+<style>[hidden] { display: none !important; }</style>
+<h1>Publisher article</h1>
+<p>Public teaser.</p>
+<p id="status" role="status">Loading subscriber access...</p>
+<div id="paywall"></div>
+<article id="article" hidden>Subscriber-only article text.</article>
+<noscript>Enable JavaScript to sign in.</noscript>
+<script src="https://cdn.jsdelivr.net/npm/@infosoftas/info-subscription-paywall@0.1.1/dist/browser/paywall.js"></script>
+<script>
+    (async () => {
+        const status = document.querySelector('#status');
+        try {
+            const paywall = await InfoSubscriptionPaywall.create({
+                configUrl: 'https://tenant-selfservice.example/paywall/config',
+                redirectUri: `${window.location.origin}/auth-callback.html`,
+            });
+            paywall.protect({
+                content: '#article',
+                target: '#paywall',
+                products: ['YOUR_PRODUCT_GUID'],
+            });
+            status.hidden = true;
+        } catch {
+            status.textContent = 'Unable to load subscriber access. Reload to try again.';
+        }
+    })();
+</script>
+</html>
 ```
 
-Do not replace a versioned CDN URL with an unversioned URL that can change
-without a publisher deployment.
+Save this as `auth-callback.html` at the publisher origin's root:
+
+```html
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Subscriber sign-in callback</title>
+<p id="status" role="status">Completing sign-in...</p>
+<script src="https://cdn.jsdelivr.net/npm/@infosoftas/info-subscription-paywall@0.1.1/dist/browser/paywall.js"></script>
+<script>
+    (async () => {
+        try {
+            await InfoSubscriptionPaywall.completeSignIn();
+            document.querySelector('#status').textContent =
+                'Sign-in response returned to the publisher page.';
+        } catch {
+            document.querySelector('#status').textContent =
+                'Unable to complete sign-in. Close this window and retry from the article.';
+        }
+    })();
+</script>
+</html>
+```
+
+The callback needs no tenant settings and must not call `create()`. Both pages
+load the same pinned SDK version. For a subdirectory deployment, change the
+callback URL and registration to match its actual path.
+
+For a local test, serve the folder containing both pages:
+
+```powershell
+python -m http.server 8000 --bind 127.0.0.1
+```
+
+Open `http://localhost:8000/` and register
+`http://localhost:8000/auth-callback.html` as the SPA callback.
+Verify anonymous content stays hidden, a matching subscriber sees it, and a
+subscriber without the selected product is denied. Content in this example is
+still delivered in HTML; this is a soft wall, not secure content delivery.
+
+### npm: publisher application build
+
+Install the SDK in the publisher application:
+
+```shell
+npm install @infosoftas/info-subscription-paywall@0.1.1
+```
+
+Use the initialization below after the article elements are mounted. Provide
+the same initially hidden article, paywall target, and static failure fallback
+as in the script-tag example.
+
+The callback must be a separate page whose application bundle runs this code,
+not the article's normal initialization:
+
+```ts
+import { completeSignIn } from '@infosoftas/info-subscription-paywall';
+
+completeSignIn().catch(() => {
+    document.body.textContent =
+        'Unable to complete sign-in. Return to the article and retry.';
+});
+```
+
+Configure the publisher's build/router to serve that callback page at
+`/auth-callback.html`. A raw TypeScript file or bare npm import cannot be loaded
+directly by a browser without the application's build tooling.
+
+Use the same SDK version for article and callback. Keep CDN URLs versioned;
+do not use `@latest` or an unversioned URL. Update both pages deliberately when
+upgrading. Publishers can also self-host the package's `dist/browser/paywall.js`.
 
 ## Initialize and protect content
 
@@ -45,7 +155,7 @@ import { createPaywall } from '@infosoftas/info-subscription-paywall';
 
 const paywall = await createPaywall({
     configUrl: 'https://tenant-selfservice.example/paywall/config',
-    redirectUri: `${window.location.origin}/auth-callback`,
+    redirectUri: `${window.location.origin}/auth-callback.html`,
 });
 
 const dispose = paywall.protect({
@@ -62,7 +172,7 @@ directly. The authority must be an HTTPS URL ending in `/`:
 const paywall = await createPaywall({
     clientId: 'YOUR_SUBSCRIBER_CLIENT_ID',
     authority: 'https://tenant.example/tenant.onmicrosoft.com/B2C_1_Signin/',
-    redirectUri: `${window.location.origin}/auth-callback`,
+    redirectUri: `${window.location.origin}/auth-callback.html`,
 });
 ```
 
@@ -196,11 +306,17 @@ such as `2026.11.1` or `2026.11.1-preview.1`. It tests, builds, and packs that
 exact version, uploads the tarball as a workflow artifact, publishes it to npm
 using trusted publishing, and creates a GitHub Release. Prereleases use npm's
 `next` dist-tag; stable releases use `latest`. Tags must be valid npm versions.
-The workflow does not create tags or deploy the browser bundle to a CDN.
+The workflow does not create tags. jsDelivr serves the published package's
+`dist/browser/paywall.js` using its immutable versioned URL; no separate CDN
+deployment is required.
 
-Before the first automated release, an npm organization maintainer must ensure
-the package exists, then configure a GitHub Actions trusted publisher for
+Trusted publishing is configured for this package. If it needs to be recreated,
+an npm organization maintainer configures a GitHub Actions trusted publisher for
 `infosoftas/info-subscription-paywall` and `package-npm.yml`, allowing direct
-`npm publish`. npm requires an existing package to configure this trust; initial
-publication must be handled separately. Configure trust shortly before release,
-because an unused trusted-publisher configuration expires after two days.
+`npm publish` with no environment name. No npm publishing token is needed in
+GitHub. Push a new numeric version tag from the intended release commit; do not
+reuse published versions or prefix the tag with `v`.
+
+## License
+
+[MIT](LICENSE). Dependencies retain their own licenses.
